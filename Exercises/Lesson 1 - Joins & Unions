@@ -1,0 +1,363 @@
+<Introduction>
+Here, you'll use different types of SQL JOINs to answer questions about the Stack Overflow dataset.
+Before you get started, run the following cell to set everything up.
+
+****************
+# Set up feedback system
+from learntools.core import binder
+binder.bind(globals())
+from learntools.sql_advanced.ex1 import *
+print("Setup Complete")
+
+Using Kaggle's public dataset BigQuery integration.
+Setup Complete
+****************
+
+The code cell below fetches the posts_questions table from the stackoverflow dataset. We also preview the first five rows of the table.
+
+****************
+from google.cloud import bigquery
+
+# Create a "Client" object
+client = bigquery.Client()
+
+# Construct a reference to the "stackoverflow" dataset
+dataset_ref = client.dataset("stackoverflow", project="bigquery-public-data")
+
+# API request - fetch the dataset
+dataset = client.get_dataset(dataset_ref)
+
+# Construct a reference to the "posts_questions" table
+table_ref = dataset_ref.table("posts_questions")
+
+# API request - fetch the table
+table = client.get_table(table_ref)
+
+# Preview the first five lines of the table
+client.list_rows(table, max_results=5).to_dataframe()
+
+Using Kaggle's public dataset BigQuery integration.
+
+id	title	body	accepted_answer_id	answer_count	comment_count	community_owned_date	creation_date	favorite_count	last_activity_date	last_edit_date	last_editor_display_name	last_editor_user_id	owner_display_name	owner_user_id	parent_id	post_type_id	score	tags	view_count
+0	320268	Html.ActionLink doesn’t render # properly	<p>When using Html.ActionLink passing a string...	NaN	0	0	NaT	2008-11-26 10:42:37.477000+00:00	0	2009-02-06 20:13:54.370000+00:00	NaT	None	NaN	Paulo	NaN	None	1	0	asp.net-mvc	390
+1	324003	Primitive recursion	<p>how will i define the function 'simplify' ...	NaN	0	0	NaT	2008-11-27 15:12:37.497000+00:00	0	2012-09-25 19:54:40.597000+00:00	2012-09-25 19:54:40.597000+00:00	Marcin	1288.0	None	41000.0	None	1	0	haskell|lambda|functional-programming|lambda-c...	497
+2	390605	While vs. Do While	<p>I've seen both the blocks of code in use se...	390608.0	0	0	NaT	2008-12-24 01:49:54.230000+00:00	2	2008-12-24 03:08:55.897000+00:00	NaT	None	NaN	Unkwntech	115.0	None	1	0	language-agnostic|loops	11262
+3	413246	Protect ASP.NET Source code	<p>Im currently doing some research in how to ...	NaN	0	0	NaT	2009-01-05 14:23:51.040000+00:00	0	2009-03-24 21:30:22.370000+00:00	2009-01-05 14:42:28.257000+00:00	Tom Anderson	13502.0	Velnias	NaN	None	1	0	asp.net|deployment|obfuscation	4823
+4	454921	Difference between "int[] myArray" and "int my...	<blockquote>\n <p><strong>Possible Duplicate:...	454928.0	0	0	NaT	2009-01-18 10:22:52.177000+00:00	0	2009-01-18 10:30:50.930000+00:00	2017-05-23 11:49:26.567000+00:00	None	-1.0	Evan Fosmark	49701.0	None	1	0	java|arrays	798
+****************
+
+We also take a look at the posts_answers table.
+
+****************
+# Construct a reference to the "posts_answers" table
+table_ref = dataset_ref.table("posts_answers")
+
+# API request - fetch the table
+table = client.get_table(table_ref)
+
+# Preview the first five lines of the table
+client.list_rows(table, max_results=5).to_dataframe()
+
+id	title	body	accepted_answer_id	answer_count	comment_count	community_owned_date	creation_date	favorite_count	last_activity_date	last_edit_date	last_editor_display_name	last_editor_user_id	owner_display_name	owner_user_id	parent_id	post_type_id	score	tags	view_count
+0	18	None	<p>For a table like this:</p>\n\n<pre><code>CR...	None	None	2	NaT	2008-08-01 05:12:44.193000+00:00	None	2016-06-02 05:56:26.060000+00:00	2016-06-02 05:56:26.060000+00:00	Jeff Atwood	126039	phpguy	NaN	17	2	59	None	None
+1	165	None	<p>You can use a <a href="http://sharpdevelop....	None	None	0	NaT	2008-08-01 18:04:25.023000+00:00	None	2019-04-06 14:03:51.080000+00:00	2019-04-06 14:03:51.080000+00:00	None	1721793	user2189331	NaN	145	2	10	None	None
+2	1028	None	<p>The VB code looks something like this:</p>\...	None	None	0	NaT	2008-08-04 04:58:40.300000+00:00	None	2013-02-07 13:22:14.680000+00:00	2013-02-07 13:22:14.680000+00:00	None	395659	user2189331	NaN	947	2	8	None	None
+3	1073	None	<p>My first choice would be a dedicated heap t...	None	None	0	NaT	2008-08-04 07:51:02.997000+00:00	None	2015-09-01 17:32:32.120000+00:00	2015-09-01 17:32:32.120000+00:00	None	45459	user2189331	NaN	1069	2	29	None	None
+4	1260	None	<p>I found the answer. all you have to do is a...	None	None	0	NaT	2008-08-04 14:06:02.863000+00:00	None	2016-12-20 08:38:48.867000+00:00	2016-12-20 08:38:48.867000+00:00	None	1221571	Jin	NaN	1229	2	1	None	None
+
+You will work with both of these tables to answer the questions below.
+****************
+
+<Exercise 1 - How long does it take for questions to receive answers?>
+You're interested in exploring the data to have a better understanding of how long it generally takes for questions to receive answers. Armed with this knowledge, you plan to use this
+information to better design the order in which questions are presented to Stack Overflow users.
+
+With this goal in mind, you write the query below, which focuses on questions asked in January 2018. It returns a table with two columns:
+1} q_id - the ID of the question
+2} time_to_answer - how long it took (in seconds) for the question to receive an answer
+
+Run the query below (without changes), and take a look at the output.
+
+****************
+first_query = """
+              SELECT q.id AS q_id,
+                  MIN(TIMESTAMP_DIFF(a.creation_date, q.creation_date, SECOND)) as time_to_answer
+              FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                  INNER JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+              ON q.id = a.parent_id
+              WHERE q.creation_date >= '2018-01-01' and q.creation_date < '2018-02-01'
+              GROUP BY q_id
+              ORDER BY time_to_answer
+              """
+​
+first_result = client.query(first_query).result().to_dataframe()
+print("Percentage of answered questions: %s%%" % \
+      (sum(first_result["time_to_answer"].notnull()) / len(first_result) * 100))
+print("Number of questions:", len(first_result))
+first_result.head()
+
+Percentage of answered questions: 100.0%
+Number of questions: 134719
+
+q_id	time_to_answer
+0	48382183	-132444692
+1	48174391	0
+2	48375126	0
+3	48092100	0
+4	48102324	0
+****************
+
+You're surprised at the results and strongly suspect that something is wrong with your query. In particular,
+1} According to the query, 100% of the questions from January 2018 received an answer. But, you know that ~80% of the questions on the site usually receive an answer.
+2} The total number of questions is surprisingly low. You expected to see at least 150,000 questions represented in the table.
+
+Given these observations, you think that the type of JOIN you have chosen has inadvertently excluded unanswered questions. Using the code cell below, can you figure out what type of JOIN
+to use to fix the problem so that the table includes unanswered questions?
+(Note: You need only amend the type of JOIN (i.e., INNER, LEFT, RIGHT, or FULL) to answer the question successfully)
+
+****************
+# Your code here
+correct_query = """
+                SELECT q.id AS q_id,
+                       MIN(TIMESTAMP_DIFF(a.creation_date, q.creation_date, SECOND)) AS time_to_answer
+                FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                FULL JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                    ON q.id = a.parent_id
+                WHERE q.creation_date >= '2018-01-01' AND q.creation_date < '2018-02-01'
+                GROUP BY q_id
+                ORDER BY time_to_answer
+                """
+
+# Check your answer
+q_1.check()
+
+# Run the query, and return a pandas DataFrame
+correct_result = client.query(correct_query).result().to_dataframe()
+print("Percentage of answered questions: %s%%" % \
+      (sum(correct_result["time_to_answer"].notnull()) / len(correct_result) * 100))
+print("Number of questions:", len(correct_result))
+
+q_id	time_to_answer
+0	48442525	NaN
+1	48483514	NaN
+2	48530198	NaN
+3	48469649	NaN
+4	48388064	NaN
+
+Percentage of answered questions: 83.3368387192557%
+Number of questions: 161656
+
+Correct
+
+# Lines below will give you a hint or solution code
+q_1.hint()
+q_1.solution()
+
+Hint:
+Is the posts_questions table the LEFT or RIGHT table? You want to keep all of the rows from this table, regardless of whether or not there is a match in the posts_answers table.
+
+Solution:
+correct_query = """
+                SELECT q.id AS q_id,
+                    MIN(TIMESTAMP_DIFF(a.creation_date, q.creation_date, SECOND)) as time_to_answer
+                FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                    LEFT JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                ON q.id = a.parent_id
+                WHERE q.creation_date >= '2018-01-01' and q.creation_date < '2018-02-01'
+                GROUP BY q_id
+                ORDER BY time_to_answer
+                """
+****************
+
+<Exercise 2 - Initial questions and answers: Part 1>
+You're interested in understanding the initial experiences that users typically have with the Stack Overflow website. Is it more common for users to first ask questions or provide
+answers? After signing up, how long does it take for users to first interact with the website? To explore this further, you draft the (partial) query in the code cell below.
+
+The query returns a table with three columns:
+1} owner_user_id - the user ID
+2} q_creation_date - the first time the user asked a question
+3} a_creation_date - the first time the user contributed an answer
+
+You want to keep track of users who have asked questions, but have yet to provide answers. And, your table should also include users who have answered questions, but have yet to pose
+their own questions. With this in mind, please fill in the appropriate JOIN (i.e., INNER, LEFT, RIGHT, or FULL) to return the correct information.
+(Note: You need only fill in the appropriate JOIN. All other parts of the query should be left as-is (You also don't need to write any additional code to run the query, since the
+check() method will take care of this for you)
+
+To avoid returning too much data, we'll restrict our attention to questions and answers posed in January 2019. We'll amend the timeframe in Part 2 of this question to be more realistic!
+
+****************
+# Your code here
+q_and_a_query = """
+                SELECT q.owner_user_id AS owner_user_id,
+                    MIN(q.creation_date) AS q_creation_date,
+                    MIN(a.creation_date) AS a_creation_date
+                FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                    RIGHT JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                ON q.owner_user_id = a.owner_user_id 
+                WHERE q.creation_date >= '2019-01-01' AND q.creation_date < '2019-02-01' 
+                    AND a.creation_date >= '2019-01-01' AND a.creation_date < '2019-02-01'
+                GROUP BY owner_user_id
+                """
+
+# Check your answer
+q_2.check()
+
+	owner_user_id	q_creation_date	a_creation_date
+0	904050	2019-01-14 20:22:27.733000+00:00	2019-01-01 17:55:17.633000+00:00
+1	10690950	2019-01-04 07:19:45.247000+00:00	2019-01-10 04:42:12.443000+00:00
+2	4916686	2019-01-24 14:59:33.480000+00:00	2019-01-24 21:57:59.200000+00:00
+3	3385891	2019-01-28 18:59:43.893000+00:00	2019-01-29 14:37:30.867000+00:00
+4	4565322	2019-01-17 10:29:32.520000+00:00	2019-01-21 10:52:18.250000+00:00
+
+Correct
+
+# Lines below will give you a hint or solution code
+q_2.hint()
+q_2.solution()
+
+Hint:
+Which type of JOIN always returns all rows from both tables?
+
+Solution:
+q_and_a_query = """
+                SELECT q.owner_user_id AS owner_user_id,
+                    MIN(q.creation_date) AS q_creation_date,
+                    MIN(a.creation_date) AS a_creation_date
+                FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                    FULL JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                ON q.owner_user_id = a.owner_user_id 
+                WHERE q.creation_date >= '2019-01-01' AND q.creation_date < '2019-02-01' 
+                    AND a.creation_date >= '2019-01-01' AND a.creation_date < '2019-02-01'
+                GROUP BY owner_user_id
+                """
+****************
+
+<Exercise 3 - Initial questions and answers: Part 2>
+Now you'll address a more realistic (and complex!) scenario. To answer this question, you'll need to pull information from three different tables! This syntax very similar to the case
+when we have to join only two tables. For instance, we can use two different JOINs to link together information from all three tables, in a single query.
+
+With this in mind, say you're interested in understanding users who joined the site in January 2019. You want to track their activity on the site: when did they post their first
+questions and answers, if ever?
+
+Write a query that returns the following columns:
+1} id - the IDs of all users who created Stack Overflow accounts in January 2019 (January 1, 2019, to January 31, 2019, inclusive)
+2} q_creation_date - the first time the user posted a question on the site; if the user has never posted a question, the value should be null
+3} a_creation_date - the first time the user posted a question on the site; if the user has never posted a question, the value should be null
+
+Note that questions and answers posted after January 31, 2019, should still be included in the results. And, all users who joined the site in January 2019 should be included
+(even if they have never posted a question or provided an answer).
+
+The query from the previous question should be a nice starting point to answering this question! You'll need to use the posts_answers and posts_questions tables. You'll also need to
+use the users table from the Stack Overflow dataset. The relevant columns from the users table are id (the ID of each user) and creation_date (when the user joined the Stack Overflow
+site, in DATETIME format).
+
+****************
+# Your code here
+three_tables_query = """
+                     SELECT u.id AS id,
+                            MIN(q.creation_date) AS q_creation_date,
+                            MIN(a.creation_date) AS a_creation_date
+                     FROM `bigquery-public-data.stackoverflow.users` AS u
+                            LEFT JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                                   ON u.id = a.owner_user_id
+                            LEFT JOIN `bigquery-public-data.stackoverflow.posts_questions` AS q
+                                   ON q.owner_user_id = u.id
+                     WHERE u.creation_date >= '2019-01-01' AND u.creation_date < '2019-02-01'
+                     GROUP BY id
+                     """
+
+# Check your answer
+q_3.check()
+
+id	q_creation_date	a_creation_date
+0	10881502	2019-01-07 22:56:43.783000+00:00	2019-03-06 16:21:44.233000+00:00
+1	10973565	2019-01-27 05:11:42.670000+00:00	2019-03-26 08:41:14.423000+00:00
+2	10885164	NaT	NaT
+3	10905196	NaT	NaT
+4	10941124	NaT	NaT
+
+Correct
+
+# Lines below will give you a hint or solution code
+q_3.hint()
+q_3.solution()
+
+Hint:
+Here's a partially completed query. You need only fill in the appropriate JOINs!
+three_tables_query = """
+                     SELECT u.id AS id,
+                         MIN(q.creation_date) AS q_creation_date,
+                         MIN(a.creation_date) AS a_creation_date
+                     FROM `bigquery-public-data.stackoverflow.users` AS u
+                         ____ `bigquery-public-data.stackoverflow.posts_answers` AS a
+                             ON u.id = a.owner_user_id
+                         ____ `bigquery-public-data.stackoverflow.posts_questions` AS q
+                             ON q.owner_user_id = u.id
+                     WHERE u.creation_date >= '2019-01-01' and u.creation_date < '2019-02-01'
+                     GROUP BY id
+                    """
+
+Solution:
+three_tables_query = """
+                     SELECT u.id AS id,
+                         MIN(q.creation_date) AS q_creation_date,
+                         MIN(a.creation_date) AS a_creation_date
+                     FROM `bigquery-public-data.stackoverflow.users` AS u
+                         LEFT JOIN `bigquery-public-data.stackoverflow.posts_answers` AS a
+                             ON u.id = a.owner_user_id
+                         LEFT JOIN `bigquery-public-data.stackoverflow.posts_questions` AS q
+                             ON q.owner_user_id = u.id
+                     WHERE u.creation_date >= '2019-01-01' and u.creation_date < '2019-02-01'
+                     GROUP BY id
+                    """
+****************
+
+<Exercise 4 - How many distinct users posted on January 1, 2019?>
+In the code cell below, write a query that returns a table with a single column:
+owner_user_id - the IDs of all users who posted at least one question or answer on January 1, 2019. Each user ID should appear at most once.
+
+In the posts_questions (and posts_answers) tables, you can get the ID of the original poster from the owner_user_id column. Likewise, the date of the original posting can be found in
+the creation_date column. In order for your answer to be marked correct, your query must use a UNION.
+
+****************
+# Your code here
+all_users_query = """
+                  SELECT q.owner_user_id
+                  FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                  WHERE EXTRACT(DATE FROM q.creation_date) = '2019-01-01'
+                  UNION DISTINCT
+                  SELECT a.owner_user_id
+                  FROM `bigquery-public-data.stackoverflow.posts_answers` AS a
+                  WHERE EXTRACT(DATE FROM a.creation_date) = '2019-01-01'
+                  """
+
+# Check your answer
+q_4.check()
+
+owner_user_id
+0	6767417.0
+1	579856.0
+2	9947723.0
+3	9694487.0
+4	10632037.0
+
+Correct
+
+# Lines below will give you a hint or solution code
+q_4.hint()
+q_4.solution()
+
+Hint:
+Begin by writing two separate queries: one to get the user IDs corresponding to questions, and another corresponding to answers. Then, take the union of the two columns.
+
+Solution:
+all_users_query = """
+                  SELECT q.owner_user_id 
+                  FROM `bigquery-public-data.stackoverflow.posts_questions` AS q
+                  WHERE EXTRACT(DATE FROM q.creation_date) = '2019-01-01'
+                  UNION DISTINCT
+                  SELECT a.owner_user_id
+                  FROM `bigquery-public-data.stackoverflow.posts_answers` AS a
+                  WHERE EXTRACT(DATE FROM a.creation_date) = '2019-01-01'
+                  """
+****************
