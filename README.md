@@ -1,10 +1,7 @@
-January 26th, 2024
-Intermediate Kaggle
--1st Course: Advanced SQL-
-
-=======================
+Date: January 26th, 2024
 User: James Surya Putra
-=======================
+
+# Intermediate Kaggle: 1st Course - Advanced SQL
 
 DISCLAIMER:
 - All tutorials and exercises are taken, including questions, submissions, hints, and solutions.
