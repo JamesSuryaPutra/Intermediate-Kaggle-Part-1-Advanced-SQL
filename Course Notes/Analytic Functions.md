@@ -1,4 +1,4 @@
-# Analytic functions
+# Analytic functions example
 We'll work with the San Francisco Open Data dataset. We begin by reviewing the first several rows of the bikeshare_trips table. 
 
     from google.cloud import bigquery
